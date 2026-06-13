@@ -42,15 +42,21 @@ Aplikasi web berbasis Laravel untuk membantu pelaku UMKM mencatat transaksi keua
 
 ## Prerequisites
 
-- PHP 8.2+
-- Composer 2.x
-- Node.js 20+ & npm
-- MySQL 8+
-- Git
+- **XAMPP 8.2+** (PHP + MySQL + Apache) — [download](https://www.apachefriends.org/)
+- **Atau** **Laragon** (PHP + MySQL + Nginx/Apache) — [download](https://laragon.org/)
+- Composer 2.x — [download](https://getcomposer.org/)
+- Node.js 20+ & npm — [download](https://nodejs.org/)
+- Git — [download](https://git-scm.com/)
+
+> **Catatan:** XAMPP / Laragon sudah include PHP 8.2+ dan MySQL 8+. Pastikan PHP dan MySQL dari XAMPP/Laragon terdaftar di `PATH` system.
 
 ## Cara Install & Jalankan
 
 ```bash
+# 0. Jalankan XAMPP
+#    Buka XAMPP Control Panel → Start Apache → Start MySQL
+#    (Atau jika pakai Laragon, cukup Start All)
+
 # 1. Clone repository
 git clone https://github.com/24530008muhammad-lab/umkm-kelompok-05.git
 cd umkm-kelompok-05/backend
@@ -61,15 +67,22 @@ composer install
 # 3. Copy & konfigurasi environment
 cp .env.example .env
 # Edit .env:
+#   DB_HOST=127.0.0.1
+#   DB_PORT=3306
 #   DB_DATABASE=uas-pw
 #   DB_USERNAME=root
-#   DB_PASSWORD=
+#   DB_PASSWORD=        # kosongkan untuk XAMPP default
 #   SESSION_DRIVER=database
+#   MAIL_MAILER=log
+
+# 3b. Buat database (via phpMyAdmin atau terminal):
+#     Opsi A — Buka http://localhost/phpmyadmin → Database → isi "uas-pw" → Create
+#     Opsi B — mysql -u root -e "CREATE DATABASE IF NOT EXISTS uas-pw CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
 
 # 4. Generate application key
 php artisan key:generate
 
-# 5. Buat database & jalankan migrasi + seeder
+# 5. Jalankan migrasi & seeder
 php artisan migrate --seed
 
 # 6. Install & build frontend assets
@@ -78,6 +91,7 @@ npm run build
 
 # 7. Jalankan development server
 php artisan serve
+# Buka http://127.0.0.1:8000
 ```
 
 **Login default:**

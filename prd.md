@@ -725,41 +725,95 @@ Route::middleware(['auth'])->group(function () {
 
 ## 16. Setup & Instalasi
 
+### 16.1 Prasyarat
+
+| Software | Keterangan |
+|----------|------------|
+| **XAMPP 8.2+** (atau **Laragon**) | Include PHP 8.2+, MySQL 8+, Apache, phpMyAdmin |
+| **Composer 2.x** | Dependency manager PHP |
+| **Node.js 20+ & npm** | Build frontend assets |
+| **Git** | Version control |
+
+> **Catatan:** Pastikan PHP dan MySQL dari XAMPP/Laragon terdaftar di `PATH` system agar bisa diakses dari terminal/cmd.
+
+### 16.2 Langkah Instalasi
+
 ```bash
-# 1. Clone repository
+# ============== STEP 0: JALANKAN XAMPP ==============
+# Buka XAMPP Control Panel
+# Klik Start pada Apache (port 80)
+# Klik Start pada MySQL (port 3306)
+#
+# (Jika pakai Laragon: buka Laragon → Start All)
+
+# ============== STEP 1: CLONE REPOSITORY ==============
 git clone https://github.com/24530008muhammad-lab/umkm-kelompok-05.git
 cd umkm-kelompok-05/backend
 
-# 2. Install dependency PHP
+# ============== STEP 2: INSTALL DEPENDENCY ==============
 composer install
 
-# 3. Konfigurasi environment
+# ============== STEP 3: KONFIGURASI ENVIRONMENT ==============
 cp .env.example .env
 # Edit .env:
+# DB_CONNECTION=mysql
 # DB_HOST=127.0.0.1
 # DB_PORT=3306
 # DB_DATABASE=uas-pw
 # DB_USERNAME=root
-# DB_PASSWORD=
+# DB_PASSWORD=               # kosongkan untuk XAMPP default
+# SESSION_DRIVER=database
+# MAIL_MAILER=log            # email ke file log
 
-# 4. Generate application key
+# ============== STEP 3b: BUAT DATABASE ==============
+# Opsi A — via phpMyAdmin:
+#    Buka http://localhost/phpmyadmin
+#    Klik tab "Database"
+#    Isi nama database: uas-pw
+#    Pilih charset: utf8mb4_unicode_ci
+#    Klik "Create"
+#
+# Opsi B — via terminal:
+# mysql -u root -e "CREATE DATABASE IF NOT EXISTS uas-pw CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+
+# ============== STEP 4: GENERATE APP KEY ==============
 php artisan key:generate
 
-# 5. Jalankan migrasi & seeder
+# ============== STEP 5: MIGRASI & SEEDER ==============
 php artisan migrate --seed
-# Seeder wajib membuat:
-# - 1 akun admin default: admin@example.com / password
-# - 2-3 akun non-admin: kasir@example.com / password, staff@example.com / password
-# - 5-10 kategori & 10-20 produk awal
-# - Baris settings: cash_opening_balance=0, cash_opening_date=today, low_stock_threshold=10
-# - 15-20 transaksi contoh (income & expense, beberapa dengan piutang)
+# Seeder membuat:
+# - 1 admin default:     admin@example.com / password
+# - 2-3 non-admin:       kasir@example.com / password
+# - 5-10 kategori
+# - 10-20 produk
+# - Settings: cash_opening_balance=0, cash_opening_date=today, low_stock_threshold=10
+# - 15-20 transaksi contoh (income & expense, beberapa piutang)
 
-# 6. Install dependency frontend & build
-npm install && npm run build
+# ============== STEP 6: BUILD FRONTEND ==============
+npm install
+npm run build
 
-# 7. Jalankan server
+# ============== STEP 7: JALANKAN SERVER ==============
 php artisan serve
+# Buka http://127.0.0.1:8000
 ```
+
+### 16.3 Verifikasi
+
+Setelah instalasi, verifikasi dengan:
+1. Buka `http://127.0.0.1:8000` → redirect ke login
+2. Login sebagai admin: `admin@example.com` / `password`
+3. Login sebagai non-admin: `kasir@example.com` / `password`
+4. Cek dashboard admin → KPI cards, charts, transaksi terbaru
+5. Cek akses non-admin ke `/admin/dashboard` → **403 Forbidden**
+
+### 16.4 Catatan Penting
+
+- **phpMyAdmin** tersedia di `http://localhost/phpmyadmin` (user: `root`, password: kosong)
+- **php.ini** XAMPP ada di `C:\xampp\php\php.ini` — pastikan `extension=mysqli` dan `extension=pdo_mysql` aktif
+- **MySQL** XAMPP menggunakan port 3306 (default). Jika ada aplikasi lain (seperti Laragon) yang juga pakai port 3306, matikan salah satu
+- **Session driver** menggunakan database agar kompatibel dengan Cloud Run yang stateless
+- **Email** untuk password reset dinonaktifkan — admin reset password via menu Users
 
 ---
 

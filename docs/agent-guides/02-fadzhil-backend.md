@@ -36,6 +36,8 @@ php artisan breeze:install blade
 npm install && npm run build
 ```
 
+**Prasyarat:** Pastikan XAMPP (atau Laragon) sudah berjalan dengan Apache & MySQL.
+
 **Konfigurasi AppServiceProvider:**
 ```php
 // app/Providers/AppServiceProvider.php
@@ -45,12 +47,19 @@ public function boot(): void {
 }
 ```
 
-**.env config:**
+**.env config (XAMPP / Laragon):**
 ```
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
 DB_DATABASE=uas-pw
+DB_USERNAME=root
+DB_PASSWORD=
 SESSION_DRIVER=database
 MAIL_MAILER=log       # Email ke log (password reset disabled via route)
 ```
+
+> **Catatan:** Database `uas-pw` harus dibuat terlebih dahulu via phpMyAdmin (`http://localhost/phpmyadmin`) atau via CLI: `mysql -u root -e "CREATE DATABASE IF NOT EXISTS uas-pw CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"`
 
 ### Phase 1: Migration (`database/migrations/`)
 

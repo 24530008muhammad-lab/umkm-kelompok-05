@@ -40,6 +40,8 @@ git push -u origin develop
 
 ### 2. Install Laravel 11 di backend/
 
+**Prasyarat:** Pastikan XAMPP sudah terinstall dan Apache + MySQL sudah running.
+
 ```bash
 mkdir backend && cd backend
 composer create-project laravel/laravel .
@@ -48,8 +50,15 @@ php artisan breeze:install blade
 npm install && npm run build
 ```
 
-**Konfigurasi .env:**
+**Buat database via phpMyAdmin:**
+- Buka `http://localhost/phpmyadmin`
+- Database → isi "uas-pw" → charset `utf8mb4_unicode_ci` → Create
+
+**Konfigurasi .env (sesuai XAMPP/Laragon):**
 ```
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
 DB_DATABASE=uas-pw
 DB_USERNAME=root
 DB_PASSWORD=
