@@ -9,6 +9,7 @@
 - [x] Pembuatan docs/changelog.md — catatan perubahan ini
 - [x] Pembagian tugas ke 5 anggota tim
 - [x] Panduan peran untuk AI agent di docs/agent-guides/
+- [x] Revisi root README.md — tech stack detail, 9 phase urutan pengerjaan, arsitektur, RBAC, business rules, dokumentasi terkait
 
 ### Rencana Development (Todo)
 
