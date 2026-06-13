@@ -3,7 +3,7 @@
 
 **Versi:** 1.0 (Master)
 **Status:** Final untuk Development
-**Stack:** Laravel 13, MySQL, Blade, Tailwind CSS, Laravel Breeze
+**Stack:** Laravel 11, MySQL, Blade, Tailwind CSS, Laravel Breeze
 
 ---
 
@@ -13,11 +13,11 @@
 |---|---|
 | Nama Proyek | Aplikasi Pengelolaan Keuangan UMKM |
 | Kelompok | Kelompok 5 |
-| Backend Framework | Laravel 13 |
+| Backend Framework | Laravel 11 |
 | Database | MySQL |
 | Frontend | Blade Templating + Tailwind CSS |
 | Autentikasi | Laravel Breeze (extended dengan role & status aktif) |
-| Repository | github.com/RCS15/uas-pw |
+| Repository | github.com/24530008muhammad-lab/umkm-kelompok-05 |
 | Deployment | Google Cloud Run (GCR) |
 
 ### 1.1 Tim & Tanggung Jawab
@@ -89,10 +89,10 @@ Membangun aplikasi web yang membantu pelaku UMKM:
 | Laporan Arus Kas | Akses penuh | Tidak bisa akses |
 | Laporan Piutang | Akses penuh, tandai lunas | Tidak bisa akses |
 | Laporan Harian | Tidak relevan (gunakan Laba/Rugi) | Hanya transaksi milik sendiri, hari tertentu |
-| Halaman `/admin/*` | Akses penuh | **Dilarang** — response 403 atau redirect ke dashboard non-admin |
+| Halaman `/admin/*` | Akses penuh | **Dilarang** — **HTTP 403 Forbidden** |
 | Halaman `/nonadmin/*` | Akses penuh (boleh, tidak dilarang) | Akses penuh |
 
-> **Aturan tegas:** Non-Admin yang mencoba mengakses route dengan prefix `/admin/*` harus menerima **HTTP 403 Forbidden** (atau redirect ke `/nonadmin/dashboard` dengan flash message error). Pilih salah satu dan konsisten — rekomendasi: **403 Forbidden** menggunakan `abort(403)` di middleware `CheckRole`.
+> **Aturan tegas:** Non-Admin yang mencoba mengakses route dengan prefix `/admin/*` harus menerima **HTTP 403 Forbidden** menggunakan `abort(403)` di middleware `CheckRole`. Admin BOLEH mengakses route `/nonadmin/*`.
 
 ---
 
@@ -131,19 +131,21 @@ Membangun aplikasi web yang membantu pelaku UMKM:
 | name | VARCHAR(100) | NOT NULL | Nama produk |
 | price | DECIMAL(15,2) | NOT NULL, >= 0 | Harga jual saat ini |
 | stock | INT | NOT NULL, DEFAULT 0, >= 0 | Stok tersedia |
-| category_id | BIGINT UNSIGNED | FK → categories.id, NOT NULL | Kategori produk |
+| category_id | BIGINT UNSIGNED | FK → categories.id, NOT NULL, ON DELETE RESTRICT | Kategori produk |
 | created_at, updated_at | TIMESTAMP | - | |
+| | | INDEX on category_id | |
 
 ### 5.4 Tabel `transactions`
 
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
-| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | ID transaksi |
+| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | ID unik transaksi |
 | transaction_date | DATE | NOT NULL | Tanggal transaksi |
 | type | ENUM('income','expense') | NOT NULL | Jenis transaksi |
 | description | VARCHAR(255) | NULLABLE | Keterangan transaksi |
 | amount | DECIMAL(15,2) | NOT NULL, >= 0 | Total nominal transaksi |
 | user_id | BIGINT UNSIGNED | FK → users.id, NOT NULL | User yang mencatat |
+| | | INDEX on transaction_date, type, user_id, is_credit, payment_status | |
 | is_credit | BOOLEAN | NOT NULL, DEFAULT FALSE | Apakah transaksi ini piutang (hanya valid untuk type='income') |
 | due_date | DATE | NULLABLE | Wajib diisi jika `is_credit = true` |
 | payment_status | ENUM('unpaid','paid') | NULLABLE, DEFAULT NULL | Status pembayaran (hanya relevan jika `is_credit = true`); default `'unpaid'` saat dibuat |
@@ -157,11 +159,12 @@ Membangun aplikasi web yang membantu pelaku UMKM:
 |---|---|---|---|
 | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | ID detail |
 | transaction_id | BIGINT UNSIGNED | FK → transactions.id, NOT NULL, ON DELETE CASCADE | Induk transaksi |
-| product_id | BIGINT UNSIGNED | FK → products.id, NOT NULL | Produk terkait |
+| product_id | BIGINT UNSIGNED | FK → products.id, NOT NULL, ON DELETE RESTRICT | Produk terkait |
 | quantity | INT | NOT NULL, > 0 | Jumlah unit |
 | price_per_unit | DECIMAL(15,2) | NOT NULL, >= 0 | Harga per unit saat transaksi (bisa beda dari harga produk saat ini) |
-| subtotal | DECIMAL(15,2) | NOT NULL, = quantity * price_per_unit | Subtotal baris |
+| subtotal | DECIMAL(15,2) | NOT NULL, = quantity * price_per_unit (computed/ diisi manual) | Subtotal baris |
 | created_at, updated_at | TIMESTAMP | - | |
+| | | INDEX on transaction_id, product_id | |
 
 > **Catatan:** Satu `transaction` boleh memiliki **0 (nol)** baris `transaction_details`. Ini digunakan untuk transaksi non-produk seperti biaya sewa, listrik, gaji, dll (lihat Bagian 9.1).
 
@@ -171,7 +174,7 @@ Membangun aplikasi web yang membantu pelaku UMKM:
 |---|---|---|---|
 | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
 | key | VARCHAR(100) | UNIQUE, NOT NULL | Kunci konfigurasi |
-| value | VARCHAR(255) | NOT NULL | Nilai konfigurasi |
+| value | TEXT | NOT NULL | Nilai konfigurasi (TEXT untuk fleksibilitas) |
 | created_at, updated_at | TIMESTAMP | - | |
 
 **Seed data wajib:**
@@ -202,14 +205,14 @@ transactions (1) ----< (N) transaction_details
 
 ## 6. Model & Relasi (app/Models/)
 
-| Model | Relasi |
-|---|---|
-| `User.php` | `hasMany(Transaction::class)` |
-| `Category.php` | `hasMany(Product::class)` |
-| `Product.php` | `belongsTo(Category::class)`, `hasMany(TransactionDetail::class)` |
-| `Transaction.php` | `belongsTo(User::class)`, `hasMany(TransactionDetail::class)` |
-| `TransactionDetail.php` | `belongsTo(Transaction::class)`, `belongsTo(Product::class)` |
-| `Setting.php` | - (key-value helper, gunakan static accessor `Setting::get('key')`) |
+| Model | Relasi | Casts & SoftDeletes | Scopes & Accessors |
+|---|---|---|---|
+| `User.php` | `hasMany(Transaction::class)` | `is_active → boolean` | `scopeActive()` — filter is_active=true |
+| `Category.php` | `hasMany(Product::class)` | — | `getProductCountAttribute()` |
+| `Product.php` | `belongsTo(Category)`, `hasMany(TransactionDetail)` | `price → decimal:2`, `stock → integer` | `getStockStatusAttribute()` (out of stock / low stock / normal), `scopeLowStock($threshold)`, `scopeInStock()` |
+| `Transaction.php` | `belongsTo(User)`, `hasMany(TransactionDetail)` | **SoftDeletes**, `amount → decimal:2`, `transaction_date → date`, `due_date → date`, `is_credit → boolean` | `getPaymentStatusLabelAttribute()` (unpaid/paid/overdue), `getIsOverdueAttribute()`, `scopeType($type)`, `scopeDateRange($from, $to)`, `scopeCredit()` |
+| `TransactionDetail.php` | `belongsTo(Transaction)`, `belongsTo(Product)` | `price_per_unit → decimal:2`, `subtotal → decimal:2` | — |
+| `Setting.php` | — | static accessor `Setting::get('key')`, `Setting::set('key', 'value')` | — |
 
 ---
 
@@ -235,9 +238,10 @@ Sebuah transaksi (`transactions`) dapat berupa salah satu dari 3 kombinasi berik
    - Jika tidak cukup → tolak dengan pesan error: *"Stok [nama produk] tidak cukup. Tersedia: X"*.
 2. **Saat transaksi `income` + detail disimpan:** `product.stock -= quantity` untuk setiap baris.
 3. **Saat transaksi `expense` + detail disimpan:** `product.stock += quantity` untuk setiap baris (dianggap restock).
-4. **Saat transaksi diedit:** stok harus di-rollback dahulu ke kondisi sebelum perubahan, lalu diterapkan ulang sesuai data baru (dalam DB transaction/lock untuk mencegah race condition).
+4. **Saat transaksi diedit:** stok harus di-rollback dahulu ke kondisi sebelum perubahan, lalu diterapkan ulang sesuai data baru.
 5. **Saat transaksi dihapus:** stok di-rollback (kebalikan dari poin 2/3).
-6. **Stok tidak boleh negatif** — validasi ini berlaku di level form request (FormRequest validation) dan di level model (defensive check).
+6. **Race condition handling:** semua operasi yang mengubah stok (store/update/destroy transaksi dengan detail produk) **WAJIB** dibungkus dalam `DB::transaction()`. Sebelum membaca stok untuk update, gunakan **pessimistic locking** `Product::whereIn('id', $ids)->lockForUpdate()` untuk mencegah race condition. Gunakan retry 3x pada transaksi database: `DB::transaction(function(){...}, 3)`.
+7. **Stok tidak boleh negatif** — validasi ini berlaku di level form request (FormRequest validation) dan di level model (defensive check).
 
 ### 7.3 Aturan Piutang (Receivables)
 
@@ -285,7 +289,7 @@ Untuk setiap baris transaksi (urut by transaction_date ASC, lalu id ASC) dalam r
 Closing Balance = Opening Balance + Total Inflow - Total Outflow (dalam rentang [from,to])
 ```
 
-> Transaksi `is_credit=true` dengan `payment_status='unpaid'` **tetap dihitung sebagai inflow** pada Cash Flow versi ini (asumsi: pencatatan berbasis akrual sederhana). *(Catatan untuk tim: jika ingin basis kas murni, transaksi unpaid harus dikecualikan — didiskusikan di Bagian 16).*
+> Transaksi `is_credit=true` dengan `payment_status='unpaid'` **tetap dihitung sebagai inflow** pada Cash Flow (pencatatan berbasis **akrual sederhana**). Keputusan final: akrual — semua transaksi dicatat saat terjadi, bukan saat dibayar.
 
 ### 7.6 Laporan Harian (Non-Admin)
 
@@ -339,19 +343,25 @@ public function handle($request, Closure $next, $role)
     if (!auth()->check()) {
         return redirect()->route('login');
     }
+    // Admin boleh akses route mana pun (termasuk /nonadmin/*)
+    if (auth()->user()->role === 'admin') {
+        return $next($request);
+    }
+    // Non-admin hanya boleh akses route dengan role:nonadmin
     if (auth()->user()->role !== $role) {
-        abort(403); // Non-admin akses /admin/* -> 403
+        abort(403);
     }
     return $next($request);
 }
 ```
 
-Registrasi alias di `app/Http/Kernel.php`:
+Registrasi alias di `bootstrap/app.php` (Laravel 11):
 ```php
-protected $middlewareAliases = [
-    // ...
-    'role' => \App\Http\Middleware\CheckRole::class,
-];
+->withMiddleware(function (Middleware $middleware) {
+    $middleware->alias([
+        'role' => \App\Http\Middleware\CheckRole::class,
+    ]);
+})
 ```
 
 ---
@@ -360,12 +370,12 @@ protected $middlewareAliases = [
 
 ### 9.1 Migrations (`database/migrations/`)
 ```
-2025_01_01_000001_create_users_table.php          (tambah kolom role, is_active)
-2025_01_01_000002_create_categories_table.php
-2025_01_01_000003_create_products_table.php
-2025_01_01_000004_create_transactions_table.php   (tambah is_credit, due_date, payment_status)
-2025_01_01_000005_create_transaction_details_table.php
-2025_01_01_000006_create_settings_table.php       (BARU)
+2026_01_01_000001_create_users_table.php          (tambah kolom role, is_active)
+2026_01_01_000002_create_categories_table.php     (+ index on name)
+2026_01_01_000003_create_products_table.php       (+ FK ON DELETE RESTRICT, index on category_id)
+2026_01_01_000004_create_transactions_table.php   (+ is_credit, due_date, payment_status, indexes on transaction_date, type, user_id, is_credit, payment_status)
+2026_01_01_000005_create_transaction_details_table.php (+ FK ON DELETE RESTRICT on product_id, indexes on transaction_id, product_id)
+2026_01_01_000006_create_settings_table.php       (BARU)
 ```
 
 ### 9.2 Models (`app/Models/`)
@@ -390,12 +400,12 @@ Auth/NewPasswordController.php
 
 **Admin**:
 ```
-Admin/DashboardController.php
-Admin/ProductController.php
-Admin/CategoryController.php
-Admin/UserController.php
-Admin/TransactionController.php
-Admin/ReportController.php        (profitLoss, cashFlow, receivables, markAsPaid)
+Admin/DashboardController.php        (statistik global, chart data, top produk)
+Admin/ProductController.php          (CRUD + export)
+Admin/CategoryController.php         (CRUD + RESTRICT delete)
+Admin/UserController.php             (CRUD + toggleStatus)
+Admin/TransactionController.php      (CRUD + bulkDelete + export)
+Admin/ReportController.php           (profitLoss, cashFlow, receivables, markAsPaid, export)
 ```
 
 **NonAdmin**:
@@ -406,12 +416,36 @@ NonAdmin/ProductController.php       (index, show — read only)
 NonAdmin/ReportController.php        (daily)
 ```
 
-### 9.4 Middleware (`app/Http/Middleware/`)
+### 9.4 Services (`app/Services/`) — *lapisan logika bisnis*
+
+```
+StockService.php           (handle update/rollback stock, validasi stok, pessimistic locking)
+TransactionService.php     (orchestrasi create/update/delete transaksi + delegasi ke StockService)
+ReportService.php          (query laporan: profitLoss, cashFlow, receivables, daily)
+ExportService.php          (generate CSV & PDF)
+```
+
+> **Aturan:** Controller hanya menerima request, memvalidasi via FormRequest, lalu memanggil Service. Service mengandung logika bisnis murni. Repository pattern tidak digunakan — cukup Eloquent langsung di Service.
+
+### 9.5 FormRequest (`app/Http/Requests/`)
+
+```
+StoreUserRequest.php
+UpdateUserRequest.php
+StoreCategoryRequest.php
+UpdateCategoryRequest.php
+StoreProductRequest.php
+UpdateProductRequest.php
+StoreTransactionRequest.php
+UpdateTransactionRequest.php
+```
+
+### 9.6 Middleware (`app/Http/Middleware/`)
 ```
 CheckRole.php
 ```
 
-### 9.5 Views (`resources/views/`)
+### 9.7 Views (`resources/views/`)
 ```
 layouts/
 ├── app.blade.php
@@ -470,8 +504,13 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('users', Admin\UserController::class);
         Route::patch('users/{user}/toggle-status', [Admin\UserController::class, 'toggleStatus'])->name('users.toggle');
         Route::resource('transactions', Admin\TransactionController::class);
+        Route::delete('transactions/bulk', [Admin\TransactionController::class, 'bulkDelete'])->name('transactions.bulk-delete');
+        Route::get('transactions/export/csv', [Admin\TransactionController::class, 'exportCsv'])->name('transactions.export-csv');
+        Route::get('transactions/export/pdf', [Admin\TransactionController::class, 'exportPdf'])->name('transactions.export-pdf');
         Route::get('reports/profit-loss', [Admin\ReportController::class, 'profitLoss'])->name('reports.profit-loss');
+        Route::get('reports/profit-loss/export/pdf', [Admin\ReportController::class, 'profitLossExportPdf'])->name('reports.profit-loss.export-pdf');
         Route::get('reports/cash-flow', [Admin\ReportController::class, 'cashFlow'])->name('reports.cash-flow');
+        Route::get('reports/cash-flow/export/pdf', [Admin\ReportController::class, 'cashFlowExportPdf'])->name('reports.cash-flow.export-pdf');
         Route::get('reports/receivables', [Admin\ReportController::class, 'receivables'])->name('reports.receivables');
         Route::patch('reports/receivables/{transaction}/mark-paid', [Admin\ReportController::class, 'markAsPaid'])->name('reports.receivables.mark-paid');
     });
@@ -688,8 +727,8 @@ Route::middleware(['auth'])->group(function () {
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/RCS15/uas-pw.git
-cd uas-pw
+git clone https://github.com/24530008muhammad-lab/umkm-kelompok-05.git
+cd umkm-kelompok-05/backend
 
 # 2. Install dependency PHP
 composer install
@@ -709,9 +748,11 @@ php artisan key:generate
 # 5. Jalankan migrasi & seeder
 php artisan migrate --seed
 # Seeder wajib membuat:
-# - 1 akun admin default (email & password disepakati tim)
-# - Beberapa kategori & produk awal
-# - Baris settings: cash_opening_balance, cash_opening_date, low_stock_threshold
+# - 1 akun admin default: admin@example.com / password
+# - 2-3 akun non-admin: kasir@example.com / password, staff@example.com / password
+# - 5-10 kategori & 10-20 produk awal
+# - Baris settings: cash_opening_balance=0, cash_opening_date=today, low_stock_threshold=10
+# - 15-20 transaksi contoh (income & expense, beberapa dengan piutang)
 
 # 6. Install dependency frontend & build
 npm install && npm run build
@@ -734,8 +775,13 @@ Dokumen ini melakukan beberapa **koreksi & penambahan** terhadap PRD awal agar l
 6. **Status "Overdue"** pada Piutang ditetapkan sebagai **nilai terhitung (computed)**, bukan disimpan di database, untuk menghindari kebutuhan job/scheduler tambahan.
 7. **Aturan penghapusan** kategori & produk ditetapkan sebagai **RESTRICT** (block delete jika masih ada relasi), dengan pesan error yang jelas ke user.
 8. **Kolom `is_active`** ditambahkan ke tabel `users` untuk mendukung fitur Activate/Deactivate pada `admin/users/index.blade.php` yang sudah direncanakan tapi belum ada di skema awal.
-9. **Basis perhitungan Arus Kas** menggunakan pendekatan akrual sederhana (transaksi kredit/piutang tetap dihitung sebagai inflow). Jika tim menginginkan basis kas murni (hanya transaksi yang sudah `paid`), ini perlu didiskusikan dan disesuaikan pada formula Bagian 7.5 sebelum development dimulai.
+9. **Basis perhitungan Arus Kas** menggunakan pendekatan **akrual sederhana** (semua transaksi termasuk unpaid dihitung sebagai inflow/outflow). Keputusan final, tidak ada opsi kas murni di versi ini.
 10. **Fitur "Send Reminder"** pada Laporan Piutang bersifat **opsional/UI-stub** — tidak wajib terhubung ke layanan email pada versi ini, untuk menjaga lingkup proyek tetap realistis sesuai timeline UAS.
+11. **Race condition stok** ditangani dengan `DB::transaction()` + `lockForUpdate()` pessimistic locking + retry 3x.
+12. **Export CSV & PDF** menggunakan library `barryvdh/laravel-dompdf` (PDF) dan streaming CSV built-in Laravel.
+13. **Soft Delete** hanya pada model `Transaction` (audit trail). Model lain hard delete.
+14. **Service layer** memisahkan logika bisnis dari controller: `StockService`, `TransactionService`, `ReportService`, `ExportService`.
+15. **Password reset via email dinonaktifkan** — admin dapat reset password user via menu Users.
 
 ---
 
