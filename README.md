@@ -159,6 +159,324 @@ umkm-kelompok-05/
 
 > **Catatan:** Phase 1-5 bersifat sekuensial. Phase 6 (Frontend) bisa dimulai paralel setelah Phase 3. Phase 7-8 dimulai setelah Phase 5 selesai.
 
+## Tutorial Pengerjaan per Anggota
+
+### Git Workflow
+
+```
+main (production, protected — hanya leader yang merge ke sini)
+  └── develop (integration — leader merge dari feature branch ke sini)
+       ├── feature/fadzhil-backend    ← Fadzhil
+       ├── feature/satria-testing     ← Satria
+       ├── feature/shidqi-frontend    ← Shidqi
+       └── feature/lita-qa            ← Lita
+```
+
+**Aturan:**
+1. Setiap anggota **WAJIB** buat branch sendiri dari `develop`: `git checkout -b feature/nama-anggota develop`
+2. Kerja di branch masing-masing, **jangan push langsung ke develop/main**
+3. Setelah selesai → `git push -u origin feature/nama-anggota`
+4. Bikin **Pull Request** ke branch `develop` via GitHub
+5. Leader (Rifki) yang review & merge PR
+6. Setelah semua fitur selesai, leader merge `develop` → `main`
+
+### Panduan per Anggota
+
+**Cara pakai:** Salin block prompt di bawah, kirim ke AI agent kamu (atau jadikan sebagai task description). AI agent akan membaca file agent-guide terkait lalu mengerjakan bagiannya.
+
+---
+
+#### 👤 Rifki — Phase 1 & 9 (Foundation + Deployment)
+
+```bash
+git checkout -b feature/rifki-setup develop
+# Kerjakan tugas di docs/agent-guides/01-rifki-leader.md
+git add -A && git commit -m "Setup Laravel 11 + Breeze + Dockerfile"
+git push -u origin feature/rifki-setup
+# Bikin PR ke develop via GitHub
+```
+
+<details>
+<summary>📋 Prompt untuk AI Agent Rifki</summary>
+
+```
+Kamu adalah AI Agent untuk Rifki (Project Leader). 
+Repo: https://github.com/24530008muhammad-lab/umkm-kelompok-05
+Branch: feature/rifki-setup (buat dari develop)
+
+Baca panduan lengkap di docs/agent-guides/01-rifki-leader.md
+
+Tugas:
+1. Setup Laravel 11 di folder backend/ (composer create-project)
+2. Install Breeze Blade stack
+3. Konfigurasi .env untuk XAMPP (DB_HOST=127.0.0.1, DB_DATABASE=uas-pw, etc)
+4. Buat AppServiceProvider (Schema::defaultStringLength)
+5. Nonaktifkan route forgot-password & reset-password
+6. Buat Dockerfile (multi-stage) & cloudbuild.yaml
+7. Setup branch: main (protected), develop (protected), feature/*
+
+Setelah selesai, commit & push. Beri tahu Rifki hasilnya.
+```
+</details>
+
+---
+
+#### 👤 Fadzhil — Phase 2, 3, 4, 5 (Backend Full)
+
+```bash
+git checkout -b feature/fadzhil-backend develop
+# Kerjakan tugas di docs/agent-guides/02-fadzhil-backend.md
+git add -A && git commit -m "Migration, model, controller, services"
+git push -u origin feature/fadzhil-backend
+# Bikin PR ke develop via GitHub
+```
+
+<details>
+<summary>📋 Prompt untuk AI Agent Fadzhil</summary>
+
+```
+Kamu adalah AI Agent untuk Fadzhil (Backend Developer).
+Repo: https://github.com/24530008muhammad-lab/umkm-kelompok-05
+Branch: feature/fadzhil-backend (buat dari develop)
+
+Baca panduan lengkap di docs/agent-guides/02-fadzhil-backend.md
+
+PRASYARAT: Pastikan Phase 1 (Rifki) sudah selesai. Pull dari develop.
+
+Tugas (kerjakan urut):
+1. 6 Migration (+indexes, FK RESTRICT/CASCADE, SoftDeletes di transactions)
+2. 6 Model (+casts, accessors, scopes, SoftDeletes di Transaction)
+3. 8 FormRequest (+ custom validasi stok, is_credit)
+4. Middleware CheckRole (admin boleh akses nonadmin routes)
+5. Auth override (is_active check, redirect by role)
+6. Service layer: StockService (lockForUpdate), TransactionService, ReportService, ExportService
+7. Event/Listener untuk stock (opsional)
+8. Admin Controllers: Dashboard, User, Category, Product, Transaction (+bulkDelete), Report (+export)
+9. Non-Admin Controllers: Dashboard, Transaction, Product, Report
+10. Seeder: ProductionSeeder (admin + settings), DevelopmentSeeder (sample data)
+11. 6 Model Factories
+12. Routes: semua termasuk bulk-delete & export
+
+VERIFIKASI:
+- php artisan migrate:fresh --seed berhasil
+- php artisan route:list menunjukkan semua route
+- Login admin redirect ke /admin/dashboard
+- Login nonadmin redirect ke /nonadmin/dashboard
+- Nonadmin akses /admin/* → 403
+- Admin akses /nonadmin/* → OK (boleh)
+
+Setelah selesai, commit & push. Beri tahu Fadzhil & Rifki hasilnya.
+```
+</details>
+
+---
+
+#### 👤 Shidqi — Phase 6 (Frontend)
+
+```bash
+git checkout -b feature/shidqi-frontend develop
+# Kerjakan tugas di docs/agent-guides/04-shidqi-frontend.md
+git add -A && git commit -m "Semua view Blade + Chart.js + responsive"
+git push -u origin feature/shidqi-frontend
+# Bikin PR ke develop via GitHub
+```
+
+<details>
+<summary>📋 Prompt untuk AI Agent Shidqi</summary>
+
+```
+Kamu adalah AI Agent untuk Shidqi (Frontend Developer).
+Repo: https://github.com/24530008muhammad-lab/umkm-kelompok-05
+Branch: feature/shidqi-frontend (buat dari develop)
+
+Baca panduan lengkap di docs/agent-guides/04-shidqi-frontend.md
+
+PRASYARAT: Pastikan Phase 3 (Fadzhil) sudah selesai (controller & routes sudah ada). Pull dari develop.
+
+Tugas (kerjakan urut):
+1. Install Chart.js v4 + @tailwindcss/forms via npm
+2. Layout: auth.blade.php (login/register), app.blade.php (sidebar dinamis by role, navbar, alert)
+3. Shared Components: sidebar-admin, sidebar-nonadmin, alert, product-card, stock-badge, confirm-dialog
+4. Admin Views:
+   - dashboard (KPI cards, 2 chart, top 5 produk, transaksi terbaru)
+   - transactions/index (search, filter, tabel, bulk delete checkbox, export buttons, pagination, summary)
+   - transactions/form (date picker, radio type, dynamic product table + modal, is_credit checkbox, auto-calc amount)
+   - products/index (search, filter kategori, stock badge, export CSV, pagination)
+   - products/form, categories/index, categories/form
+   - users/index (search, filter role, toggle active), users/form
+   - reports/profit-loss (chart, export PDF), cash-flow (line chart, running balance), receivables (aging, mark as paid)
+5. Non-Admin Views:
+   - dashboard (greeting, today summary, recent transactions, low stock)
+   - transactions/create (tanpa is_credit), transactions/history (tanpa edit/delete)
+   - products/index (card grid read-only), products/show
+   - reports/daily (date picker, summary, tabel, chart)
+6. Error pages: 403.blade.php, 404.blade.php (Tailwind styled)
+7. Responsive: sidebar collapsible mobile, overflow-x-auto tabel, grid responsive
+
+VERIFIKASI:
+- npm run build berhasil tanpa error
+- Semua halaman bisa diakses via browser
+- Stock badge muncul dengan warna sesuai (merah/kuning/hijau)
+- Chart.js menampilkan grafik di dashboard & reports
+- Modal pilih produk muncul & berfungsi
+- Konfirmasi delete muncul saat klik tombol hapus
+- Tampilan responsive di mobile (375px)
+
+Setelah selesai, commit & push. Beri tahu Shidqi & Rifki hasilnya.
+```
+</details>
+
+---
+
+#### 👤 Satria — Phase 7 (API Testing)
+
+```bash
+git checkout -b feature/satria-testing develop
+# Kerjakan tugas di docs/agent-guides/03-satria-api-testing.md
+git add -A && git commit -m "PHPUnit tests + Postman collection"
+git push -u origin feature/satria-testing
+# Bikin PR ke develop via GitHub
+```
+
+<details>
+<summary>📋 Prompt untuk AI Agent Satria</summary>
+
+```
+Kamu adalah AI Agent untuk Satria (API Testing).
+Repo: https://github.com/24530008muhammad-lab/umkm-kelompok-05
+Branch: feature/satria-testing (buat dari develop)
+
+Baca panduan lengkap di docs/agent-guides/03-satria-api-testing.md
+
+PRASYARAT: Pastikan Phase 5 (Fadzhil) sudah selesai. Pull dari develop.
+
+Tugas (kerjakan urut):
+1. Konfigurasi phpunit.xml (SQLITE in-memory, coverage 70% overall, 90% services)
+2. Setup TestCase: RefreshDatabase + seed ProductionSeeder + buat admin & nonadmin user
+3. 10 File Feature Test:
+   - AuthTest (6 test + 2 edge case)
+   - MiddlewareTest (4 test)
+   - AdminUserTest (8 test + edge cases)
+   - AdminCategoryTest (5 test + edge cases)
+   - AdminProductTest (5 test + edge cases)
+   - AdminTransactionTest (12 test + concurrent stock test + export test + edge cases)
+   - AdminReportTest (8 test + export PDF test + edge cases)
+   - NonAdminTransactionTest (5 test)
+   - NonAdminProductTest (3 test)
+   - NonAdminReportTest (3 test)
+4. Concurrent stock update test (simulasi 3 request simultan, 2 sukses 1 gagal)
+5. Postman Collection (4 folder, semua endpoint, environment variables)
+
+VERIFIKASI:
+- php artisan test → semua passing (minimal 50+ test)
+- php artisan test --coverage → minimal 70%
+- Postman collection bisa di-import & dijalankan
+
+Setelah selesai, commit & push. Beri tahu Satria & Rifki hasilnya.
+```
+</details>
+
+---
+
+#### 👤 Lita — Phase 8 (QA)
+
+```bash
+git checkout -b feature/lita-qa develop
+# Kerjakan tugas di docs/agent-guides/05-lita-qa.md
+git add -A && git commit -m "Test plan + test case + bug report"
+git push -u origin feature/lita-qa
+# Bikin PR ke develop via GitHub
+```
+
+<details>
+<summary>📋 Prompt untuk AI Agent Lita</summary>
+
+```
+Kamu adalah AI Agent untuk Lita (Quality Assurance).
+Repo: https://github.com/24530008muhammad-lab/umkm-kelompok-05
+Branch: feature/lita-qa (buat dari develop)
+
+Baca panduan lengkap di docs/agent-guides/05-lita-qa.md
+
+PRASYARAT: Pastikan semua fase development selesai (aplikasi sudah jalan). Pull dari develop.
+
+Tugas:
+1. Buat dokumen docs/qa-test-plan.md (scope, tools, prioritas)
+2. Eksekusi 40+ test case manual:
+   - TC-AUTH: 8 test (login admin/nonadmin, 403, is_active, register, guest, admin access nonadmin)
+   - TC-TRX: 9 test (CRUD transaksi, stok, bulk delete, export CSV)
+   - TC-CREDIT: 7 test (piutang, overdue, mark as paid, is_credit on expense)
+   - TC-RPT: 8 test (laporan laba rugi, arus kas, piutang, export PDF, daily)
+   - TC-MASTER: 7 test (hapus kategori/produk, nonadmin akses, toggle user, export produk)
+   - TC-VAL: 9 test (validasi form, edge cases)
+   - TC-UI: 9 test (responsive 3 ukuran, stock badge, alert, cross-browser, error page)
+   - TC-EXPORT: 3 test (CSV transaksi, PDF laporan, PDF arus kas)
+3. Catat hasil setiap test (Pass/Fail/Blocked) di spreadsheet
+4. Jika ada bug: buat Bug Report (template di agent-guide) → assign ke anggota terkait
+5. Regression testing setelah bug fix
+6. Laporan QA final (ringkasan, rekomendasi Release/Delayed)
+
+VERIFIKASI:
+- Semua test case selesai dijalankan
+- Bug report terisi untuk setiap issue yang ditemukan
+- Laporan QA final siap
+
+Setelah selesai, commit & push. Beri tahu Lita & Rifki hasilnya.
+```
+</details>
+
+---
+
+#### 👤 Rifki — Integrasi & Merge (setelah semua selesai)
+
+```bash
+git checkout develop
+git pull origin develop
+# Cek setiap PR, jika OK merge:
+git merge --no-ff feature/fadzhil-backend
+git merge --no-ff feature/shidqi-frontend
+git merge --no-ff feature/satria-testing
+git merge --no-ff feature/lita-qa
+git push origin develop
+
+# Uji coba:
+php artisan migrate:fresh --seed
+php artisan test
+npm run build
+
+# Jika semua OK, merge ke main:
+git checkout main
+git merge --no-ff develop
+git push origin main
+```
+
+<details>
+<summary>📋 Prompt untuk AI Agent Rifki (Integrasi)</summary>
+
+```
+Kamu adalah AI Agent untuk Rifki (Project Leader) — Fase Integrasi.
+
+Repo: https://github.com/24530008muhammad-lab/umkm-kelompok-05
+
+Tugas:
+1. Pull branch develop (git pull origin develop)
+2. Review & merge setiap PR dari anggota ke develop:
+   - feature/fadzhil-backend → develop
+   - feature/shidqi-frontend → develop
+   - feature/satria-testing → develop
+   - feature/lita-qa → develop
+3. Setelah semua merge, jalankan:
+   - php artisan migrate:fresh --seed (pastikan migrasi & seeder jalan)
+   - php artisan test (pastikan semua test lulus)
+   - npm run build (pastikan build frontend sukses)
+4. Jika ada konflik: resolve dengan prioritas (backend > frontend > testing)
+5. Jika semua OK, merge develop → main
+6. Deploy ke GCR (ikuti docs/agent-guides/01-rifki-leader.md)
+
+Beri tahu tim bahwa integrasi selesai & aplikasi siap.
+```
+</details>
+
 ## Role & Hak Akses (RBAC)
 
 | Modul | Admin | Non-Admin |
